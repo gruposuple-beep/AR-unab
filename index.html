@@ -61,22 +61,26 @@ controls.enableDamping = true;
 // LUZ
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
 
-// 📁 RUTAS (MISMA CARPETA)
+/// 📁 RUTAS (MISMA CARPETA)
 const OBJ_URL = "./mi_modelo.obj";
 const MTL_URL = "./mi_modelo.mtl";
+const TEX_URL = "./textura.jpg"; // 👈 AGREGA TU JPG AQUÍ
 
-// 🔥 CARGA MODELO
+// 🔥 CARGA MODELO + TEXTURA FORZADA
 const mtlLoader = new MTLLoader();
+
+mtlLoader.setPath('./');
+mtlLoader.setResourcePath('./');
 
 mtlLoader.load(MTL_URL,
   (materials) => {
 
     console.log("MTL OK");
-
     materials.preload();
 
     const objLoader = new OBJLoader();
     objLoader.setMaterials(materials);
+    objLoader.setPath('./');
 
     objLoader.load(
       OBJ_URL,
@@ -84,20 +88,30 @@ mtlLoader.load(MTL_URL,
 
         console.log("OBJ OK");
 
+        // 🔥 CARGAR TEXTURA MANUAL
+        const textureLoader = new THREE.TextureLoader();
+        const texture = textureLoader.load(TEX_URL);
+
+        // 🔥 FORZAR TEXTURA A TODO EL MODELO
+        object.traverse((child) => {
+          if (child.isMesh) {
+            child.material.map = texture;
+            child.material.needsUpdate = true;
+          }
+        });
+
         object.scale.set(0.05, 0.05, 0.05);
         object.position.set(0, 0, -1);
 
         scene.add(object);
 
         document.getElementById("info").innerText =
-          "Modelo listo ✔";
+          "Modelo con textura ✔";
 
       },
       undefined,
       (e) => {
         console.error("OBJ ERROR", e);
-        document.getElementById("info").innerText =
-          "Error OBJ (ver consola)";
       }
     );
 
@@ -105,8 +119,6 @@ mtlLoader.load(MTL_URL,
   undefined,
   (e) => {
     console.error("MTL ERROR", e);
-    document.getElementById("info").innerText =
-      "Error MTL";
   }
 );
 
