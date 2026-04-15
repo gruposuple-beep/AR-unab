@@ -1,0 +1,156 @@
+
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBJ AR Viewer</title>
+
+<style>
+body { margin: 0; overflow: hidden; background: black; }
+canvas { position: absolute; top: 0; left: 0; }
+
+#info {
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-family: monospace;
+  z-index: 10;
+}
+</style>
+
+<!-- 🔥 IMPORT MAP (ESTO ARREGLA TODO) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.158.0/build/three.module.js"
+  }
+}
+</script>
+
+</head>
+
+<body>
+
+<div id="info">Iniciando...</div>
+
+<script type="module">
+
+import * as THREE from 'three';
+import { OrbitControls } from 'https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+import { OBJLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/MTLLoader.js';
+
+// ESCENA
+const scene = new THREE.Scene();
+
+// CÁMARA
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.01, 100);
+camera.position.set(0, 0, 2);
+
+// RENDER
+const renderer = new THREE.WebGLRenderer({ alpha: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// CONTROLES
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// LUZ
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
+
+// 📁 RUTAS (MISMA CARPETA)
+const OBJ_URL = "./mi_modelo.obj";
+const MTL_URL = "./mi_modelo.mtl";
+
+// 🔥 CARGA MODELO
+const mtlLoader = new MTLLoader();
+
+mtlLoader.load(MTL_URL,
+  (materials) => {
+
+    console.log("MTL OK");
+
+    materials.preload();
+
+    const objLoader = new OBJLoader();
+    objLoader.setMaterials(materials);
+
+    objLoader.load(
+      OBJ_URL,
+      (object) => {
+
+        console.log("OBJ OK");
+
+        object.scale.set(0.05, 0.05, 0.05);
+        object.position.set(0, 0, -1);
+
+        scene.add(object);
+
+        document.getElementById("info").innerText =
+          "Modelo listo ✔";
+
+      },
+      undefined,
+      (e) => {
+        console.error("OBJ ERROR", e);
+        document.getElementById("info").innerText =
+          "Error OBJ (ver consola)";
+      }
+    );
+
+  },
+  undefined,
+  (e) => {
+    console.error("MTL ERROR", e);
+    document.getElementById("info").innerText =
+      "Error MTL";
+  }
+);
+
+// 📷 CÁMARA
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
+    });
+
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    video.setAttribute("playsinline", true);
+    await video.play();
+
+    scene.background = new THREE.VideoTexture(video);
+
+    console.log("Cámara OK");
+
+  } catch (e) {
+    console.error("CAM ERROR", e);
+    document.getElementById("info").innerText =
+      "Sin acceso a cámara";
+  }
+}
+
+startCamera();
+
+// LOOP
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// RESIZE
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+</script>
+
+</body>
+</html>
